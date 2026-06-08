@@ -689,9 +689,11 @@ async function handleUserSpeech(text) {
 
     } catch(err) {
         console.error(err);
-        showError('APIエラー: ' + err.message + ' — 設定からAPIキーを確認してください');
-        setStatus('idle', 'エラーが発生しました');
+        showError('エラー詳細: ' + err.message);
+        setStatus('idle', 'エラー — もう一度お試しください');
         document.getElementById('micBtn').disabled = false;
+        await delay(2000);
+        startListening();
     }
 }
 
