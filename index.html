@@ -447,7 +447,7 @@
 let API_KEY = localStorage.getItem('gemini_api_key') || '';
 
 function getApiUrl() {
-    return `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+    return `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`;
 }
 
 // ── Topics ───────────────────────────────────────────────
@@ -604,7 +604,9 @@ function startConversation() {
     lastAIText = opening;
     addMessage('ai', opening);
     setStatus('speaking', 'AIが話しています...');
-    speak(opening).then(() => setStatus('idle', 'マイクボタンを押して話してください'));
+    speak(opening).then(() => {
+        delay(600).then(() => startListening());
+    });
 }
 
 // ── Mic ──────────────────────────────────────────────────
@@ -681,8 +683,9 @@ async function handleUserSpeech(text) {
             await speak('By the way, ' + correction);
         }
 
-        setStatus('idle', 'マイクボタンを押して話してください');
         document.getElementById('micBtn').disabled = false;
+        await delay(600);
+        startListening();
 
     } catch(err) {
         console.error(err);
