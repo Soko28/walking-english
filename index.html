@@ -1,23 +1,870 @@
-🎧 Walking English
-⚙️
-今日も練習しよう
-イヤホンをつけてトピックを選び、歩きながら英語で話しましょう。AIがリアルタイムで添削します。
-💬
-フリー会話
-自由なテーマ
-🧘
-ヨーガ・健康
-学術・専門英語
-🎓
-論文・発表
-学会・プレゼン
-💼
-ビジネス
-会議・交渉
-🌏
-雑談・文化
-政治・経済・文化交流
-📝
-復習モード
-間違いを練習
-🎤 会話を始める
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Walking English Coach</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+        :root {
+            --bg: #0f0f1a;
+            --surface: #1e1e35;
+            --primary: #6c63ff;
+            --accent: #ff6584;
+            --text: #f0f0f0;
+            --muted: #888;
+            --success: #4caf50;
+            --warning: #ff9800;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body {
+            height: 100%;
+            height: -webkit-fill-available;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            -webkit-user-select: none;
+        }
+
+        .header {
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            min-height: 60px;
+        }
+        .header h1 { font-size: 18px; font-weight: 700; }
+        .topic-badge {
+            font-size: 12px;
+            background: var(--primary);
+            padding: 4px 10px;
+            border-radius: 12px;
+        }
+
+        .screen {
+            display: none;
+            flex: 1;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .screen.active { display: flex; }
+
+        /* HOME */
+        .home-content {
+            flex: 1;
+            padding: 24px 20px;
+            overflow-y: auto;
+        }
+        .home-content h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .home-content p {
+            color: var(--muted);
+            font-size: 14px;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+        .topic-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+        .topic-card {
+            background: var(--surface);
+            border-radius: 16px;
+            padding: 20px 12px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            text-align: center;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .topic-card.selected {
+            border-color: var(--primary);
+            background: rgba(108, 99, 255, 0.15);
+        }
+        .topic-card .icon { font-size: 30px; margin-bottom: 8px; }
+        .topic-card .name { font-size: 13px; font-weight: 600; }
+        .topic-card .desc { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+        .start-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--primary), #8b83ff);
+            border: none;
+            border-radius: 16px;
+            color: white;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            letter-spacing: 0.5px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* CHAT */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .message {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 15px;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        .message.user {
+            background: var(--primary);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .message.ai {
+            background: var(--surface);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .correction-box {
+            background: rgba(255, 152, 0, 0.12);
+            border-left: 3px solid var(--warning);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 13px;
+            line-height: 1.6;
+            align-self: flex-start;
+            max-width: 92%;
+        }
+        .correction-box .label {
+            color: var(--warning);
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .status-bar {
+            padding: 10px 20px;
+            background: var(--surface);
+            border-top: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-height: 52px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--muted);
+            flex-shrink: 0;
+            transition: background 0.3s;
+        }
+        .status-dot.listening { background: var(--accent); animation: pulse 1s infinite; }
+        .status-dot.thinking  { background: var(--warning); animation: pulse 0.5s infinite; }
+        .status-dot.speaking  { background: var(--success); animation: pulse 0.8s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(1.4); }
+        }
+        .status-text { flex: 1; font-size: 13px; color: var(--muted); }
+
+        .controls {
+            padding: 14px 20px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: var(--bg);
+            padding-bottom: max(14px, env(safe-area-inset-bottom));
+        }
+        .mic-btn {
+            flex: 1;
+            padding: 16px;
+            border-radius: 50px;
+            border: none;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--primary);
+            color: white;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .mic-btn.recording {
+            background: var(--accent);
+            transform: scale(1.02);
+        }
+        .mic-btn:disabled {
+            background: #444;
+            cursor: not-allowed;
+        }
+        .icon-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            background: var(--surface);
+            color: var(--text);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* REVIEW */
+        .back-btn {
+            padding: 14px 20px;
+            background: var(--surface);
+            border: none;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+            color: var(--text);
+            font-size: 16px;
+            cursor: pointer;
+            text-align: left;
+            width: 100%;
+        }
+        .review-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .review-empty {
+            text-align: center;
+            color: var(--muted);
+            padding: 60px 20px;
+            font-size: 15px;
+            line-height: 1.8;
+        }
+        .review-item {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 14px 16px;
+            margin-bottom: 12px;
+        }
+        .review-item .ri-said {
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .review-item .ri-correction {
+            font-size: 14px;
+            color: var(--warning);
+            line-height: 1.6;
+        }
+        .review-replay {
+            margin-top: 8px;
+            padding: 6px 14px;
+            background: rgba(108,99,255,0.2);
+            border: none;
+            border-radius: 20px;
+            color: var(--primary);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* SETTINGS */
+        .settings-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        .settings-content label {
+            display: block;
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        .settings-content input {
+            width: 100%;
+            background: var(--surface);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            padding: 12px 14px;
+            color: var(--text);
+            font-size: 14px;
+            margin-bottom: 20px;
+            font-family: monospace;
+        }
+        .save-btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .settings-note {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.7;
+            margin-top: 20px;
+            padding: 14px;
+            background: var(--surface);
+            border-radius: 10px;
+        }
+
+        .error-banner {
+            background: rgba(255,70,70,0.15);
+            border-left: 3px solid #ff4646;
+            padding: 10px 16px;
+            font-size: 13px;
+            color: #ff8888;
+            margin: 8px 20px;
+            border-radius: 6px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<!-- HOME SCREEN -->
+<div class="screen active" id="homeScreen">
+    <div class="header">
+        <h1>🎧 Walking English</h1>
+        <div style="display:flex;gap:8px;align-items:center">
+            <span id="reviewBadge" class="topic-badge" style="display:none">📝 0</span>
+            <button class="icon-btn" onclick="showSettings()" title="設定">⚙️</button>
+        </div>
+    </div>
+    <div class="home-content">
+        <h2>今日も練習しよう</h2>
+        <p>イヤホンをつけてトピックを選び、歩きながら英語で話しましょう。AIがリアルタイムで添削します。</p>
+
+        <div class="topic-grid" id="topicGrid">
+            <div class="topic-card" data-topic="free">
+                <div class="icon">💬</div>
+                <div class="name">フリー会話</div>
+                <div class="desc">自由なテーマ</div>
+            </div>
+            <div class="topic-card" data-topic="yoga">
+                <div class="icon">🧘</div>
+                <div class="name">ヨーガ・健康</div>
+                <div class="desc">学術・専門英語</div>
+            </div>
+            <div class="topic-card" data-topic="academic">
+                <div class="icon">🎓</div>
+                <div class="name">論文・発表</div>
+                <div class="desc">学会・プレゼン</div>
+            </div>
+            <div class="topic-card" data-topic="business">
+                <div class="icon">💼</div>
+                <div class="name">ビジネス</div>
+                <div class="desc">会議・交渉</div>
+            </div>
+            <div class="topic-card" data-topic="culture">
+                <div class="icon">🌏</div>
+                <div class="name">雑談・文化</div>
+                <div class="desc">政治・経済・文化交流</div>
+            </div>
+            <div class="topic-card" data-topic="review">
+                <div class="icon">📝</div>
+                <div class="name">復習モード</div>
+                <div class="desc">間違いを練習</div>
+            </div>
+        </div>
+
+        <button class="start-btn" onclick="startConversation()">🎤 会話を始める</button>
+    </div>
+</div>
+
+<!-- CHAT SCREEN -->
+<div class="screen" id="chatScreen">
+    <div class="header">
+        <button class="icon-btn" onclick="goHome()">←</button>
+        <h1 id="chatTitle">会話練習</h1>
+        <button class="icon-btn" onclick="showReview()">📝</button>
+    </div>
+    <div class="error-banner" id="errorBanner"></div>
+    <div class="chat-area" id="chatArea"></div>
+    <div class="status-bar">
+        <div class="status-dot" id="statusDot"></div>
+        <div class="status-text" id="statusText">マイクボタンを押して話してください</div>
+    </div>
+    <div class="controls">
+        <button class="icon-btn" onclick="repeatLast()" title="繰り返し">🔁</button>
+        <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎤 話す</button>
+        <button class="icon-btn" onclick="skipTurn()" title="スキップ">⏭</button>
+    </div>
+</div>
+
+<!-- REVIEW SCREEN -->
+<div class="screen" id="reviewScreen">
+    <div class="header">
+        <button class="icon-btn" onclick="backFromReview()">←</button>
+        <h1>復習リスト</h1>
+        <button class="icon-btn" onclick="clearReview()" title="クリア">🗑</button>
+    </div>
+    <div class="review-content" id="reviewContent">
+        <div class="review-empty">まだ添削アイテムはありません<br><br>会話練習中に間違えた表現が<br>ここに表示されます</div>
+    </div>
+</div>
+
+<!-- SETTINGS SCREEN -->
+<div class="screen" id="settingsScreen">
+    <div class="header">
+        <button class="icon-btn" onclick="showScreen('homeScreen')">←</button>
+        <h1>設定</h1>
+        <div></div>
+    </div>
+    <div class="settings-content">
+        <label>Gemini API キー</label>
+        <input type="text" id="apiKeyInput" placeholder="AIza..." autocomplete="off" autocorrect="off" spellcheck="false">
+        <button class="save-btn" onclick="saveSettings()">保存する</button>
+        <div class="settings-note">
+            APIキーは <strong>aistudio.google.com</strong> で無料取得できます。<br>
+            キーはこの端末のみに保存され、外部に送信されません。<br><br>
+            無料枠: 1日1,500回まで利用可能（ウォーキング練習には十分です）
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Config ──────────────────────────────────────────────
+let API_KEY = localStorage.getItem('gemini_api_key') || '';
+
+// ── Topics ───────────────────────────────────────────────
+const TOPICS = {
+    free: {
+        name: '💬 フリー会話',
+        opening: "Hi! Great to practice with you. What's on your mind today?",
+        system: `You are a warm and encouraging English conversation coach. The user is a Japanese woman in her 40s who is a Research Scholar in Yoga & Consciousness at an Indian university. She wants to improve her spoken English.
+
+Rules:
+- Keep responses to 2-3 sentences (she is walking, so stay concise)
+- Be natural and friendly
+- After your response, check for grammar or expression errors
+
+Use this EXACT format every time:
+RESPONSE: [your conversational reply here]
+CORRECTION: [If she made an error: write "Instead of '[her exact words]', it's more natural to say '[corrected version]' — [brief reason]". If no error, write: none]`
+    },
+    yoga: {
+        name: '🧘 ヨーガ・健康',
+        opening: "Hello! I'm excited to discuss yoga science with you. What aspect of your research are you focusing on these days?",
+        system: `You are an academic English coach specializing in yoga science, Ayurveda, consciousness studies, and wellness research. The user is a Japanese Research Scholar in the Yoga & Consciousness Department at an Indian state university.
+
+Rules:
+- Discuss yoga philosophy, research methodology, pranayama, meditation, consciousness, mind-body medicine at an academic level
+- Use appropriate academic and scientific terminology
+- Keep responses to 2-3 sentences
+- Help elevate her vocabulary to publication-level English
+
+Use this EXACT format every time:
+RESPONSE: [your academic reply here]
+CORRECTION: [If error: "Instead of '[her words]', say '[correction]' — [brief reason]". If no error: none]`
+    },
+    academic: {
+        name: '🎓 論文・発表',
+        opening: "Welcome! Let's practice conference English. Imagine you're at an international yoga research symposium. How would you introduce your research?",
+        system: `You are an academic presentation coach for international conferences. The user is a Japanese yoga researcher preparing for academic conferences and paper presentations.
+
+Rules:
+- Simulate conference scenarios: presenting research findings, Q&A sessions, peer discussions
+- Teach phrases like "My study examines...", "The findings suggest...", "Building on previous research...", "Could you elaborate on..."
+- Keep responses to 2-3 sentences
+- Focus on formal academic register
+
+Use this EXACT format every time:
+RESPONSE: [your academic coaching reply]
+CORRECTION: [If error: "Instead of '[her words]', a more academic phrasing would be '[correction]' — [brief reason]". If no error: none]`
+    },
+    business: {
+        name: '💼 ビジネス',
+        opening: "Good day! Let's practice professional English for your international work. Shall we start with a meeting introduction scenario?",
+        system: `You are a business English coach for international professional settings. The user is a Japanese yoga researcher who needs professional English for international collaborations, meetings, and networking.
+
+Rules:
+- Practice: meeting openings, negotiations, proposals, professional introductions, email language
+- Keep responses to 2-3 sentences
+- Focus on professional tone and precise communication
+
+Use this EXACT format every time:
+RESPONSE: [your professional reply]
+CORRECTION: [If error: "Instead of '[her words]', the professional phrasing is '[correction]' — [brief reason]". If no error: none]`
+    },
+    culture: {
+        name: '🌏 雑談・文化',
+        opening: "Hi! I love chatting about culture and world affairs. What's been on your mind lately — any interesting news or cultural observations?",
+        system: `You are a conversational English coach for cultural exchange and current affairs discussions. The user is a Japanese yoga researcher who wants to discuss world culture, politics, economics, international relations, and cross-cultural topics naturally.
+
+Rules:
+- Engage with thoughtful, balanced perspectives on culture, current events, geopolitics, economics
+- Model natural small-talk transitions and discourse markers (e.g., "That reminds me...", "Speaking of which...", "It's interesting because...")
+- Keep responses to 2-3 sentences
+- Help her express nuanced opinions in natural English
+
+Use this EXACT format every time:
+RESPONSE: [your engaging reply]
+CORRECTION: [If error: "Instead of '[her words]', a more natural expression is '[correction]' — [brief reason]". If no error: none]`
+    }
+};
+
+// ── State ────────────────────────────────────────────────
+let currentTopic = 'free';
+let conversationHistory = [];
+let corrections = [];
+let isListening = false;
+let isSpeaking = false;
+let recognition = null;
+let lastAIText = '';
+let fromReview = false;
+
+// ── Init ─────────────────────────────────────────────────
+document.querySelectorAll('.topic-card').forEach(card => {
+    card.addEventListener('click', () => {
+        const topic = card.dataset.topic;
+        if (topic === 'review') { showReview(); return; }
+        document.querySelectorAll('.topic-card').forEach(c => c.classList.remove('selected'));
+        card.classList.add('selected');
+        currentTopic = topic;
+    });
+});
+document.querySelector('[data-topic="free"]').classList.add('selected');
+
+// ── Navigation ───────────────────────────────────────────
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+}
+
+function goHome() {
+    stopListening();
+    speechSynthesis.cancel();
+    isSpeaking = false;
+    showScreen('homeScreen');
+    updateBadge();
+}
+
+function showReview() {
+    fromReview = document.getElementById('chatScreen').classList.contains('active');
+    stopListening();
+    renderReview();
+    showScreen('reviewScreen');
+}
+
+function backFromReview() {
+    showScreen(fromReview ? 'chatScreen' : 'homeScreen');
+}
+
+function showSettings() {
+    document.getElementById('apiKeyInput').value = API_KEY;
+    showScreen('settingsScreen');
+}
+
+function saveSettings() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (key) {
+        API_KEY = key;
+        localStorage.setItem('gemini_api_key', key);
+        alert('APIキーを保存しました');
+        showScreen('homeScreen');
+    } else {
+        alert('APIキーを入力してください');
+    }
+}
+
+// ── Conversation ─────────────────────────────────────────
+function startConversation() {
+    if (!API_KEY) { showSettings(); return; }
+    conversationHistory = [];
+    document.getElementById('chatArea').innerHTML = '';
+    document.getElementById('chatTitle').textContent = TOPICS[currentTopic].name;
+    hideError();
+    showScreen('chatScreen');
+
+    const opening = TOPICS[currentTopic].opening;
+    lastAIText = opening;
+    addMessage('ai', opening);
+    setStatus('speaking', 'AIが話しています...');
+    speak(opening).then(() => {
+        delay(600).then(() => startListening());
+    });
+}
+
+// ── Mic ──────────────────────────────────────────────────
+function toggleMic() {
+    if (isSpeaking) { speechSynthesis.cancel(); isSpeaking = false; }
+    isListening ? stopListening() : startListening();
+}
+
+function startListening() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+        showError('音声認識はSafari (iOS 14.5+) でご利用ください');
+        return;
+    }
+    recognition = new SR();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = e => {
+        const text = e.results[0][0].transcript.trim();
+        if (text) handleUserSpeech(text);
+    };
+    recognition.onerror = e => {
+        console.warn('SR error:', e.error);
+        setStatus('idle', 'もう一度お試しください');
+        setMicActive(false);
+        isListening = false;
+    };
+    recognition.onend = () => {
+        if (isListening) { isListening = false; setMicActive(false); }
+    };
+
+    try {
+        recognition.start();
+        isListening = true;
+        setMicActive(true);
+        setStatus('listening', '🎤 聞いています... 英語で話してください');
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function stopListening() {
+    if (recognition) { try { recognition.stop(); } catch(e) {} recognition = null; }
+    isListening = false;
+    setMicActive(false);
+}
+
+// ── AI Call ──────────────────────────────────────────────
+async function handleUserSpeech(text) {
+    stopListening();
+    addMessage('user', text);
+    setStatus('thinking', '💭 考えています...');
+    document.getElementById('micBtn').disabled = true;
+    hideError();
+
+    try {
+        const raw = await callCohere(text);
+        const { reply, correction } = parseAIResponse(raw);
+
+        lastAIText = reply;
+        addMessage('ai', reply);
+
+        if (correction && correction.toLowerCase() !== 'none') {
+            addCorrectionBox(correction, text);
+        }
+
+        setStatus('speaking', '🔊 AIが話しています...');
+        await speak(reply);
+
+        if (correction && correction.toLowerCase() !== 'none') {
+            await delay(400);
+            await speak('By the way, ' + correction);
+        }
+
+        document.getElementById('micBtn').disabled = false;
+        await delay(600);
+        startListening();
+
+    } catch(err) {
+        console.error(err);
+        showError('エラー詳細: ' + err.message);
+        setStatus('idle', 'エラー — もう一度お試しください');
+        document.getElementById('micBtn').disabled = false;
+        await delay(2000);
+        startListening();
+    }
+}
+
+async function callCohere(userText) {
+    conversationHistory.push({ role: 'user', content: userText });
+
+    const messages = [
+        { role: 'system', content: TOPICS[currentTopic].system },
+        ...conversationHistory
+    ];
+
+    const body = {
+        model: 'command-r-plus',
+        messages: messages,
+        temperature: 0.85,
+        max_tokens: 350
+    };
+
+    const res = await fetch('https://api.cohere.com/v2/chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify(body)
+    });
+
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || `HTTP ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.message?.content?.[0]?.text || '';
+    conversationHistory.push({ role: 'assistant', content: text });
+    return text;
+}
+
+function parseAIResponse(raw) {
+    const rMatch = raw.match(/RESPONSE:\s*([\s\S]+?)(?=\nCORRECTION:|$)/);
+    const cMatch = raw.match(/CORRECTION:\s*([\s\S]+?)$/);
+    const reply = rMatch ? rMatch[1].trim() : raw.trim();
+    const correction = cMatch ? cMatch[1].trim() : null;
+    return { reply, correction };
+}
+
+// ── Speech ───────────────────────────────────────────────
+function speak(text) {
+    return new Promise(resolve => {
+        speechSynthesis.cancel();
+        const utt = new SpeechSynthesisUtterance(text);
+        utt.lang = 'en-US';
+        utt.rate = 0.88;
+        utt.pitch = 1.0;
+
+        const voices = speechSynthesis.getVoices();
+        const preferred = voices.find(v => v.lang.startsWith('en') && /Samantha|Karen|Moira|Google US/i.test(v.name))
+                       || voices.find(v => v.lang === 'en-US');
+        if (preferred) utt.voice = preferred;
+
+        isSpeaking = true;
+        utt.onend = () => { isSpeaking = false; resolve(); };
+        utt.onerror = () => { isSpeaking = false; resolve(); };
+        speechSynthesis.speak(utt);
+    });
+}
+
+function repeatLast() {
+    if (lastAIText) {
+        speechSynthesis.cancel();
+        setStatus('speaking', '🔁 繰り返し再生中...');
+        speak(lastAIText).then(() => setStatus('idle', 'マイクボタンを押して話してください'));
+    }
+}
+
+function skipTurn() {
+    stopListening();
+    speechSynthesis.cancel();
+    isSpeaking = false;
+    setStatus('idle', 'マイクボタンを押して話してください');
+    document.getElementById('micBtn').disabled = false;
+}
+
+// ── UI Helpers ───────────────────────────────────────────
+function addMessage(role, text) {
+    const area = document.getElementById('chatArea');
+    const div = document.createElement('div');
+    div.className = `message ${role}`;
+    div.textContent = text;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+}
+
+function addCorrectionBox(correction, original) {
+    const area = document.getElementById('chatArea');
+    const div = document.createElement('div');
+    div.className = 'correction-box';
+    div.innerHTML = `<div class="label">💡 添削</div><div>${escHtml(correction)}</div>`;
+    area.appendChild(div);
+    area.scrollTop = area.scrollHeight;
+    corrections.push({ original, correction, time: new Date() });
+    updateBadge();
+}
+
+function setStatus(state, text) {
+    document.getElementById('statusDot').className = 'status-dot ' + state;
+    document.getElementById('statusText').textContent = text;
+}
+
+function setMicActive(on) {
+    const btn = document.getElementById('micBtn');
+    btn.className = 'mic-btn' + (on ? ' recording' : '');
+    btn.textContent = on ? '🔴 停止' : '🎤 話す';
+}
+
+function showError(msg) {
+    const b = document.getElementById('errorBanner');
+    b.textContent = msg;
+    b.style.display = 'block';
+}
+function hideError() {
+    document.getElementById('errorBanner').style.display = 'none';
+}
+
+function updateBadge() {
+    const b = document.getElementById('reviewBadge');
+    if (corrections.length > 0) {
+        b.style.display = 'inline-block';
+        b.textContent = `📝 ${corrections.length}`;
+    } else {
+        b.style.display = 'none';
+    }
+}
+
+function renderReview() {
+    const content = document.getElementById('reviewContent');
+    if (corrections.length === 0) {
+        content.innerHTML = '<div class="review-empty">まだ添削アイテムはありません<br><br>会話練習中に間違えた表現が<br>ここに表示されます</div>';
+        return;
+    }
+    content.innerHTML = corrections.map((c, i) => `
+        <div class="review-item">
+            <div class="ri-said">あなたが言った: "${escHtml(c.original)}"</div>
+            <div class="ri-correction">💡 ${escHtml(c.correction)}</div>
+            <button class="review-replay" onclick="speakReview(${i})">🔊 聞く</button>
+        </div>
+    `).join('');
+}
+
+function speakReview(i) {
+    const c = corrections[i];
+    speak(c.correction);
+}
+
+function clearReview() {
+    if (corrections.length === 0) return;
+    if (confirm('復習リストをクリアしますか？')) {
+        corrections = [];
+        renderReview();
+        updateBadge();
+    }
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Preload voices
+speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+window.addEventListener('load', () => {
+    speechSynthesis.getVoices();
+    if (!API_KEY) showSettings();
+});
+</script>
+</body>
+</html>
